@@ -51,12 +51,14 @@ import org.dcm4che3.net.service.QueryRetrieveLevel2;
 import org.dcm4che3.util.ReverseDNS;
 import org.dcm4che3.util.SafeClose;
 import org.dcm4che3.util.StringUtils;
+import org.dcm4chee.arc.UserAccessControl;
 import org.dcm4chee.arc.conf.*;
 import org.dcm4chee.arc.entity.Location;
 import org.dcm4chee.arc.entity.Series;
 import org.dcm4chee.arc.retrieve.*;
 import org.dcm4chee.arc.storage.Storage;
 import org.dcm4chee.arc.keycloak.HttpServletRequestInfo;
+import org.dcm4chee.arc.keycloak.ClientRoles;
 import org.dcm4chee.arc.store.InstanceLocations;
 import org.dcm4chee.arc.store.UpdateLocation;
 import org.dcm4chee.arc.ArchiveUserIdentityAC;
@@ -195,20 +197,13 @@ class RetrieveContextImpl implements RetrieveContext {
 
     @Override
     public String[] getAccessControlIDs() {
-        String [] accessControlIDs = arcAE.getAccessControlIDs();
-        if (null != requestAssociation)
-        {
-            AAssociateAC ac = requestAssociation.getAAssociateAC();
-            if (null != ac) {
-                UserIdentityAC userIdentityAC = ac.getUserIdentityAC();
-                if (userIdentityAC instanceof ArchiveUserIdentityAC) {
-                    Set<String> set = new HashSet<>(Arrays.asList(accessControlIDs));
-                    ((ArchiveUserIdentityAC) userIdentityAC).filterRolesByClientRoles(set);
-                    accessControlIDs = (String[]) set.toArray();
-                }
-            }
-        }
-        return accessControlIDs;
+        Set<String> arcAEAccessControlIDSet = new HashSet<>(Arrays.asList(arcAE.getAccessControlIDs()));
+
+        return UserAccessControl.getAccessControlIDs(
+                arcAEAccessControlIDSet,
+                this.httpServletRequestInfo,
+                this.requestAssociation
+        );
     }
 
     @Override
